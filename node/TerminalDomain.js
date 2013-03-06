@@ -28,7 +28,7 @@ maxerr: 50, node: true */
 (function () {
     "use strict";
     
-    var spawn = require('child_process').spawn;
+    var spawn = require("child_process").spawn;
     
     var _sessions = {},
         domainManager;
@@ -38,10 +38,8 @@ maxerr: 50, node: true */
      * @param {string} initialDirectory Absolute path
      * @return {number} PID of the bash process
      */
-    function createSession(initialDirectory) {
-        var session = spawn("bash", ["--login"]);
-        
-        session.stdin.write("cd " + initialDirectory + "\n");
+    function spawnSession(initialDirectory) {
+        var session = spawn("bash", ["--login", "-i"], { cwd: initialDirectory });
         
         session.stdout.setEncoding();
         session.stdout.on("data", function (data) {
@@ -62,14 +60,28 @@ maxerr: 50, node: true */
         return session.pid;
     }
     
+    function killSession(pid) {
+        var session = _sessions[pid];
+        
+        if (session) {
+            session.kill();
+        }
+    }
+    
     function write(pid, message) {
         var session = _sessions[pid];
         
-        if (!session) {
-            return;
+        if (session) {
+            session.stdin.write(message);
         }
+    }
+    
+    function end(pid) {
+        var session = _sessions[pid];
         
-        session.stdin.write(message + "\n");
+        if (session) {
+            session.stdin.end();
+        }
     }
     
     /**
@@ -83,11 +95,11 @@ maxerr: 50, node: true */
             DomainManager.registerDomain("terminal", {major: 0, minor: 1});
         }
         
-        // terminal.createSession()
+        // command: terminal.createSession(initialDirectory):pid
         DomainManager.registerCommand(
             "terminal",         // domain name
-            "createSession",    // command name
-            createSession,      // command handler function
+            "spawnSession",    // command name
+            spawnSession,      // command handler function
             false,              // this command is synchronous
             "Opens a new terminal session",
             [
@@ -106,23 +118,56 @@ maxerr: 50, node: true */
             ]
         );
         
-        // terminal.write(session, message)
+        // command: terminal.killSession(pid)
+        DomainManager.registerCommand(
+            "terminal",         // domain name
+            "killSession",      // command name
+            killSession,        // command handler function
+            false,              // this command is synchronous
+            "Kills a terminal session",
+            [
+                {
+                    name: "pid",
+                    type: "number",
+                    description: "PID of the session to destroy"
+                }
+            ]
+        );
+        
+        // command: terminal.write(pid, message)
         DomainManager.registerCommand(
             "terminal",         // domain name
             "write",            // command name
             write,              // command handler function
             false,              // this command is synchronous
-            "Opens a new terminal session",
+            "Writes string with the default encoding to stdin.",
             [
                 {
-                    name: "session",
+                    name: "pid",
                     type: "number",
-                    description: "session data"
+                    description: "PID of the session to write to"
                 },
                 {
-                    name: "session",
+                    name: "message",
+                    type: "string",
+                    description: "string"
+                }
+            ],
+            []             // no return value
+        );
+        
+        // command: terminal.end(pid)
+        DomainManager.registerCommand(
+            "terminal",         // domain name
+            "end",              // command name
+            end,                // command handler function
+            false,              // this command is synchronous
+            "Terminates stdin with EOF or FIN. This call will allow queued write data to be sent before closing the stream.",
+            [
+                {
+                    name: "pid",
                     type: "number",
-                    description: "session data"
+                    description: "PID to terminate stdin"
                 }
             ],
             []             // no return value
