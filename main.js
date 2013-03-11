@@ -31,7 +31,7 @@ define(function (require, exports, module) {
     
     require("thirdparty/underscore-min");
     require("thirdparty/backbone-min");
-    require("src/thirdparty/CodeMirror2/mode/shell/shell");
+    //require("src/thirdparty/CodeMirror2/mode/shell/shell");
 
     var AppInit         = brackets.getModule("utils/AppInit"),
         CommandManager  = brackets.getModule("command/CommandManager"),
@@ -136,7 +136,7 @@ define(function (require, exports, module) {
             // listen for CodeMirror events
             this.codeMirror.setOption("onKeyEvent", this.onKeyEvent.bind(this));
             this.codeMirror.setOption("theme", "monokai");
-            this.codeMirror.setOption("mode", "shell");
+            //this.codeMirror.setOption("mode", "shell");
             
             // listen for model events
             this.listenTo(this.model, "response", this.responseHandler);
