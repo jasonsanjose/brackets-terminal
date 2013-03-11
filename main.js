@@ -143,14 +143,23 @@ define(function (require, exports, module) {
         },
         
         onKeyEvent: function (instance, event) {
-            var line = this.codeMirror.getRange(this._lastMark.find().to, this.endPos());
+            var start = (this._lastMark) ? this._lastMark.find().to : {line: 0, ch: 0},
+                line = this.codeMirror.getRange(start, this.endPos());
             
-            if (event.keyCode === 13) {
+            switch (event.keyCode) {
+            case 13:
                 this.model.write(line + "\n");
-            } else if (event.keyCode === 9) {
+                break;
+            case 9:
                 // do not write tab char to terminal
                 event.preventDefault();
                 this.model.write(line + "\t");
+                break;
+            case 38:
+                // do not move cursor up/down
+                event.preventDefault();
+                this.model.write("\x1bOA");
+                break;
             }
             
             return event.defaultPrevented;
@@ -202,7 +211,13 @@ define(function (require, exports, module) {
             term.on("change:status", function (model, status) {
                 if (status === Terminal.STATUS_CONNECTED) {
                     var view = new TerminalView({model: term});
-                    self.$el.find("#terminal-container").append(view.render().el);
+                    
+                    //FIXME height 100% damn it!
+                    //var toolbarHeight = self.$el.find(".toolbar").height();
+                    view.render();
+                    view.codeMirror.setSize(null, 172);
+                    
+                    self.$el.find("#terminal-container").append(view.el);
                     
                     if (!self.$el.is(":visible")) {
                         self.show();
@@ -243,6 +258,8 @@ define(function (require, exports, module) {
         panel = new ExtensionPanel();
         
         ExtensionUtils.addLinkedStyleSheet("thirdparty/CodeMirror2/theme/monokai.css");
+        
+        ExtensionUtils.loadStyleSheet(module, "styles.css");
     });
     
     AppInit.appReady(function () {

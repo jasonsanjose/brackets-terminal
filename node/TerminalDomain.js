@@ -39,7 +39,9 @@ maxerr: 50, node: true */
      * @return {number} PID of the bash process
      */
     function spawnSession(initialDirectory) {
+        //FIXME interactive prompts are buggy, prompt sent to stderr twice
         var session = spawn("bash", ["--login", "-i"], { cwd: initialDirectory });
+        //var session = spawn("bash", ["--login"], { cwd: initialDirectory });
         
         session.stdout.setEncoding();
         session.stdout.on("data", function (data) {
